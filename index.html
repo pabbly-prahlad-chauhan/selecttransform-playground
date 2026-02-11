@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SelectTransform Playground</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/lint.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <h1>ST.js Playground</h1>
+      <span class="subtitle">SelectTransform — JSON Template over JSON</span>
+    </div>
+    <div class="header-right">
+      <select id="examples" title="Load Example">
+        <option value="">-- Load Example --</option>
+        <option value="basic">Basic Transform</option>
+        <option value="each">Each Loop</option>
+        <option value="conditional">Conditional (#if / #else)</option>
+        <option value="merge">Merge Objects</option>
+        <option value="concat">Concat Arrays</option>
+        <option value="let">Let Variables</option>
+        <option value="select">Select + Transform</option>
+        <option value="nested">Nested Transform</option>
+      </select>
+      <button id="runBtn" title="Run (Ctrl+Enter)">Run</button>
+      <button id="formatBtn" title="Format JSON">Format</button>
+      <button id="clearBtn" title="Clear Result">Clear</button>
+    </div>
+  </header>
+
+  <!-- Main Panels -->
+  <div class="panels">
+    <!-- Panel 1: Data -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Data (JSON)</span>
+        <span class="panel-hint">Define your data object</span>
+      </div>
+      <textarea id="dataEditor"></textarea>
+    </div>
+
+    <!-- Divider -->
+    <div class="divider" data-index="0"></div>
+
+    <!-- Panel 2: Template -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Template (JSON)</span>
+        <span class="panel-hint">Define your ST template</span>
+      </div>
+      <textarea id="templateEditor"></textarea>
+    </div>
+
+    <!-- Divider -->
+    <div class="divider" data-index="1"></div>
+
+    <!-- Panel 3: Result -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Result</span>
+        <span id="resultStatus" class="panel-hint">Ready</span>
+      </div>
+      <textarea id="resultEditor"></textarea>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <span>Powered by <a href="https://github.com/SelectTransform/st.js" target="_blank">st.js</a></span>
+    <span class="shortcuts">Ctrl+Enter to Run | Ctrl+Shift+F to Format</span>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="st.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/brace-fold.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
