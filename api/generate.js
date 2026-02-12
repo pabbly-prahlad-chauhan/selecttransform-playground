@@ -134,35 +134,36 @@ export default async function handler(req, res) {
   const { data, prompt } = req.body || {};
   if (!prompt) return res.status(400).json({ error: "Missing prompt" });
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: "GEMINI_API_KEY not configured" });
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: "GROQ_API_KEY not configured" });
 
   const userMessage = `Here is the JSON data:\n\`\`\`json\n${data || "{}"}\n\`\`\`\n\nGenerate an ST.js template for this request: ${prompt}\n\nReturn ONLY the JSON template, nothing else.`;
 
   try {
-    const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          contents: [{ role: "user", parts: [{ text: userMessage }] }],
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 4096,
-          },
-        }),
-      }
-    );
+    const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: userMessage },
+        ],
+        temperature: 0.2,
+        max_tokens: 4096,
+      }),
+    });
 
     if (!resp.ok) {
       const errText = await resp.text();
-      return res.status(200).json({ error: "Gemini API error: " + errText });
+      return res.status(200).json({ error: "Groq API error: " + errText });
     }
 
     const result = await resp.json();
-    let text = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    let text = result.choices?.[0]?.message?.content || "";
 
     // Strip markdown code fences if present
     text = text.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
