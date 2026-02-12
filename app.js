@@ -491,9 +491,9 @@
       insideMustache = true;
     }
 
-    // Find the current word/token being typed
+    // Find the current word/token being typed (stop at dots)
     var start = end;
-    while (start > 0 && /[\w.$#]/.test(line.charAt(start - 1))) {
+    while (start > 0 && /[\w$#]/.test(line.charAt(start - 1))) {
       start--;
     }
     var token = line.substring(start, end).toLowerCase();
@@ -509,55 +509,78 @@
       });
     } else {
       // Inside {{ }} — suggest methods
+      var hasDot = before.charAt(end - token.length - 1) === ".";
 
-      // If user typed a dot, suggest instance methods
-      if (before.charAt(end - token.length - 1) === ".") {
-        var dotToken = token;
-        var allDotMethods = [].concat(
-          ST_COMPLETIONS.string,
-          ST_COMPLETIONS.array,
-          ST_COMPLETIONS.number,
-          ST_COMPLETIONS.date
-        );
-        allDotMethods.forEach(function (c) {
-          var t = c.text.replace(/^\./, "");
-          if (!dotToken || t.toLowerCase().indexOf(dotToken) > -1) {
-            list.push({ text: t, displayText: c.displayText });
-          }
-        });
-      }
-      // If user typed "Math." suggest Math methods
-      else if (before.indexOf("Math.") > -1 && before.lastIndexOf("Math.") > mustacheStart) {
-        ST_COMPLETIONS.math.forEach(function (c) {
-          var t = c.text.replace(/^Math\./, "");
-          if (!token || t.toLowerCase().indexOf(token) > -1) {
-            list.push({ text: t, displayText: c.displayText });
-          }
-        });
-      }
-      // If user typed "Object." or "JSON."
-      else if (before.indexOf("Object.") > -1 && before.lastIndexOf("Object.") > mustacheStart) {
-        ST_COMPLETIONS.object.forEach(function (c) {
-          if (c.text.startsWith("Object.")) {
-            var t = c.text.replace(/^Object\./, "");
+      if (hasDot) {
+        // Find the word before the dot to detect Math., Object., JSON., Number., Date.
+        var dotPos = end - token.length - 1;
+        var prefixEnd = dotPos;
+        var prefixStart = prefixEnd;
+        while (prefixStart > 0 && /[\w$]/.test(line.charAt(prefixStart - 1))) {
+          prefixStart--;
+        }
+        var prefix = line.substring(prefixStart, prefixEnd);
+
+        if (prefix === "Math") {
+          ST_COMPLETIONS.math.forEach(function (c) {
+            var t = c.text.replace(/^Math\./, "");
             if (!token || t.toLowerCase().indexOf(token) > -1) {
               list.push({ text: t, displayText: c.displayText });
             }
-          }
-        });
-      }
-      else if (before.indexOf("JSON.") > -1 && before.lastIndexOf("JSON.") > mustacheStart) {
-        ST_COMPLETIONS.object.forEach(function (c) {
-          if (c.text.startsWith("JSON.")) {
-            var t = c.text.replace(/^JSON\./, "");
+          });
+        } else if (prefix === "Object") {
+          ST_COMPLETIONS.object.forEach(function (c) {
+            if (c.text.startsWith("Object.")) {
+              var t = c.text.replace(/^Object\./, "");
+              if (!token || t.toLowerCase().indexOf(token) > -1) {
+                list.push({ text: t, displayText: c.displayText });
+              }
+            }
+          });
+        } else if (prefix === "JSON") {
+          ST_COMPLETIONS.object.forEach(function (c) {
+            if (c.text.startsWith("JSON.")) {
+              var t = c.text.replace(/^JSON\./, "");
+              if (!token || t.toLowerCase().indexOf(token) > -1) {
+                list.push({ text: t, displayText: c.displayText });
+              }
+            }
+          });
+        } else if (prefix === "Number") {
+          ST_COMPLETIONS.number.forEach(function (c) {
+            if (c.text.startsWith(".")) {
+              var t = c.text.replace(/^\./, "");
+              if (!token || t.toLowerCase().indexOf(token) > -1) {
+                list.push({ text: t, displayText: c.displayText });
+              }
+            }
+          });
+        } else if (prefix === "Date") {
+          ST_COMPLETIONS.date.forEach(function (c) {
+            if (c.text.startsWith(".") || c.text.startsWith("Date.")) {
+              var t = c.text.replace(/^(Date)?\./, "");
+              if (!token || t.toLowerCase().indexOf(token) > -1) {
+                list.push({ text: t, displayText: c.displayText });
+              }
+            }
+          });
+        } else {
+          // Generic dot — show all instance methods (String, Array, Number, Date)
+          var allDotMethods = [].concat(
+            ST_COMPLETIONS.string,
+            ST_COMPLETIONS.array,
+            ST_COMPLETIONS.number,
+            ST_COMPLETIONS.date
+          );
+          allDotMethods.forEach(function (c) {
+            var t = c.text.replace(/^\./, "");
             if (!token || t.toLowerCase().indexOf(token) > -1) {
               list.push({ text: t, displayText: c.displayText });
             }
-          }
-        });
-      }
-      else {
-        // General — suggest everything relevant
+          });
+        }
+      } else {
+        // No dot — suggest global functions and ST.js utils
         var allItems = [].concat(
           ST_COMPLETIONS.math,
           ST_COMPLETIONS.number,
