@@ -341,6 +341,248 @@
   }
 
   // =============================================
+  // ST.js AUTOCOMPLETE for Template Editor
+  // =============================================
+  var ST_COMPLETIONS = {
+    // ST.js control flow keys
+    stKeys: [
+      { text: '"{{#each }}": ', displayText: '#each — loop over array' },
+      { text: '"{{#if }}": ', displayText: '#if — conditional' },
+      { text: '"{{#elseif }}": ', displayText: '#elseif — else-if branch' },
+      { text: '"{{#else}}": ', displayText: '#else — fallback branch' },
+      { text: '"{{#merge}}": ', displayText: '#merge — merge objects' },
+      { text: '"{{#concat}}": ', displayText: '#concat — concatenate arrays' },
+      { text: '"{{#let}}": ', displayText: '#let — define local vars' },
+      { text: '"{{ { ...this, } }}"', displayText: '{{ { ...this } }} — spread + add fields' },
+    ],
+    // String methods
+    string: [
+      { text: '.toUpperCase()', displayText: '.toUpperCase() — "abc" → "ABC"' },
+      { text: '.toLowerCase()', displayText: '.toLowerCase() — "ABC" → "abc"' },
+      { text: '.trim()', displayText: '.trim() — remove whitespace' },
+      { text: '.trimStart()', displayText: '.trimStart() — trim leading whitespace' },
+      { text: '.trimEnd()', displayText: '.trimEnd() — trim trailing whitespace' },
+      { text: '.split()', displayText: '.split(sep) — string to array' },
+      { text: '.replace()', displayText: '.replace(old, new) — replace first match' },
+      { text: '.replaceAll()', displayText: '.replaceAll(old, new) — replace all' },
+      { text: '.slice()', displayText: '.slice(start, end) — substring' },
+      { text: '.substring()', displayText: '.substring(start, end) — extract part' },
+      { text: '.charAt()', displayText: '.charAt(i) — char at index' },
+      { text: '.charCodeAt()', displayText: '.charCodeAt(i) — char code' },
+      { text: '.indexOf()', displayText: '.indexOf(str) — find position' },
+      { text: '.lastIndexOf()', displayText: '.lastIndexOf(str) — find last position' },
+      { text: '.includes()', displayText: '.includes(str) — check contains' },
+      { text: '.startsWith()', displayText: '.startsWith(str) — check prefix' },
+      { text: '.endsWith()', displayText: '.endsWith(str) — check suffix' },
+      { text: '.match()', displayText: '.match(regex) — regex match' },
+      { text: '.search()', displayText: '.search(regex) — regex search index' },
+      { text: '.padStart()', displayText: '.padStart(len, ch) — pad start' },
+      { text: '.padEnd()', displayText: '.padEnd(len, ch) — pad end' },
+      { text: '.repeat()', displayText: '.repeat(n) — repeat n times' },
+      { text: '.concat()', displayText: '.concat(str) — concatenate strings' },
+      { text: '.at()', displayText: '.at(i) — char at index (supports negative)' },
+      { text: '.length', displayText: '.length — string length' },
+    ],
+    // Array methods
+    array: [
+      { text: '.map()', displayText: '.map(fn) — transform each element' },
+      { text: '.filter()', displayText: '.filter(fn) — keep matching elements' },
+      { text: '.reduce()', displayText: '.reduce(fn, init) — reduce to value' },
+      { text: '.find()', displayText: '.find(fn) — first matching element' },
+      { text: '.findIndex()', displayText: '.findIndex(fn) — index of first match' },
+      { text: '.some()', displayText: '.some(fn) — any match?' },
+      { text: '.every()', displayText: '.every(fn) — all match?' },
+      { text: '.forEach()', displayText: '.forEach(fn) — iterate (no return)' },
+      { text: '.join()', displayText: '.join(sep) — array to string' },
+      { text: '.includes()', displayText: '.includes(val) — check membership' },
+      { text: '.indexOf()', displayText: '.indexOf(val) — find index' },
+      { text: '.lastIndexOf()', displayText: '.lastIndexOf(val) — last index' },
+      { text: '.slice()', displayText: '.slice(start, end) — subarray' },
+      { text: '.concat()', displayText: '.concat(arr) — merge arrays' },
+      { text: '.flat()', displayText: '.flat(depth) — flatten nested arrays' },
+      { text: '.flatMap()', displayText: '.flatMap(fn) — map then flatten' },
+      { text: '.sort()', displayText: '.sort(fn) — sort in place' },
+      { text: '.reverse()', displayText: '.reverse() — reverse in place' },
+      { text: '.fill()', displayText: '.fill(val, start, end) — fill with value' },
+      { text: '.at()', displayText: '.at(i) — element at index (neg ok)' },
+      { text: '.length', displayText: '.length — array length' },
+      { text: '.toString()', displayText: '.toString() — to string' },
+    ],
+    // Number / Math
+    math: [
+      { text: 'Math.round()', displayText: 'Math.round(n) — round to nearest' },
+      { text: 'Math.floor()', displayText: 'Math.floor(n) — round down' },
+      { text: 'Math.ceil()', displayText: 'Math.ceil(n) — round up' },
+      { text: 'Math.abs()', displayText: 'Math.abs(n) — absolute value' },
+      { text: 'Math.max()', displayText: 'Math.max(a, b, ...) — maximum' },
+      { text: 'Math.min()', displayText: 'Math.min(a, b, ...) — minimum' },
+      { text: 'Math.pow()', displayText: 'Math.pow(base, exp) — power' },
+      { text: 'Math.sqrt()', displayText: 'Math.sqrt(n) — square root' },
+      { text: 'Math.random()', displayText: 'Math.random() — 0 to 1 random' },
+      { text: 'Math.trunc()', displayText: 'Math.trunc(n) — remove decimals' },
+      { text: 'Math.sign()', displayText: 'Math.sign(n) — -1, 0, or 1' },
+      { text: 'Math.PI', displayText: 'Math.PI — 3.14159...' },
+    ],
+    // Number methods
+    number: [
+      { text: '.toFixed()', displayText: '.toFixed(digits) — format decimals' },
+      { text: '.toString()', displayText: '.toString(radix) — to string' },
+      { text: '.toPrecision()', displayText: '.toPrecision(n) — n significant digits' },
+      { text: '.toLocaleString()', displayText: '.toLocaleString() — locale format' },
+      { text: 'Number()', displayText: 'Number(val) — convert to number' },
+      { text: 'Number.isInteger()', displayText: 'Number.isInteger(n) — check integer' },
+      { text: 'Number.isFinite()', displayText: 'Number.isFinite(n) — check finite' },
+      { text: 'Number.isNaN()', displayText: 'Number.isNaN(n) — check NaN' },
+      { text: 'parseInt()', displayText: 'parseInt(str, radix) — parse integer' },
+      { text: 'parseFloat()', displayText: 'parseFloat(str) — parse float' },
+    ],
+    // Object / JSON
+    object: [
+      { text: 'Object.keys()', displayText: 'Object.keys(obj) — key array' },
+      { text: 'Object.values()', displayText: 'Object.values(obj) — value array' },
+      { text: 'Object.entries()', displayText: 'Object.entries(obj) — [k,v] pairs' },
+      { text: 'Object.assign()', displayText: 'Object.assign(target, src) — merge' },
+      { text: 'Object.fromEntries()', displayText: 'Object.fromEntries(arr) — entries to obj' },
+      { text: 'JSON.stringify()', displayText: 'JSON.stringify(val) — serialize' },
+      { text: 'JSON.parse()', displayText: 'JSON.parse(str) — deserialize' },
+    ],
+    // Date
+    date: [
+      { text: 'new Date()', displayText: 'new Date(val) — create Date' },
+      { text: '.getFullYear()', displayText: '.getFullYear() — 4-digit year' },
+      { text: '.getMonth()', displayText: '.getMonth() — month (0-11)' },
+      { text: '.getDate()', displayText: '.getDate() — day of month' },
+      { text: '.getDay()', displayText: '.getDay() — day of week (0-6)' },
+      { text: '.getHours()', displayText: '.getHours() — hours (0-23)' },
+      { text: '.getMinutes()', displayText: '.getMinutes() — minutes' },
+      { text: '.getSeconds()', displayText: '.getSeconds() — seconds' },
+      { text: '.getTime()', displayText: '.getTime() — ms since epoch' },
+      { text: '.toISOString()', displayText: '.toISOString() — ISO 8601 format' },
+      { text: '.toLocaleDateString()', displayText: '.toLocaleDateString() — locale date' },
+      { text: '.toLocaleTimeString()', displayText: '.toLocaleTimeString() — locale time' },
+      { text: 'Date.now()', displayText: 'Date.now() — current timestamp ms' },
+    ],
+    // Ternary / Boolean / Utils
+    util: [
+      { text: ' ? "" : ""', displayText: 'ternary — condition ? a : b' },
+      { text: ' || ""', displayText: '|| fallback — default value' },
+      { text: 'Boolean()', displayText: 'Boolean(val) — to boolean' },
+      { text: 'String()', displayText: 'String(val) — to string' },
+      { text: 'Array.isArray()', displayText: 'Array.isArray(val) — check array' },
+      { text: 'Array.from()', displayText: 'Array.from(iterable) — to array' },
+      { text: 'encodeURIComponent()', displayText: 'encodeURIComponent(str) — encode URI' },
+      { text: 'decodeURIComponent()', displayText: 'decodeURIComponent(str) — decode URI' },
+      { text: 'isNaN()', displayText: 'isNaN(val) — check not-a-number' },
+      { text: 'isFinite()', displayText: 'isFinite(val) — check finite' },
+    ],
+  };
+
+  function stHint(cm) {
+    var cursor = cm.getCursor();
+    var line = cm.getLine(cursor.line);
+    var end = cursor.ch;
+
+    // Detect if we're inside a {{ }} expression
+    var before = line.substring(0, end);
+    var insideMustache = false;
+    var mustacheStart = before.lastIndexOf("{{");
+    var mustacheEnd = before.lastIndexOf("}}");
+    if (mustacheStart > -1 && mustacheStart > mustacheEnd) {
+      insideMustache = true;
+    }
+
+    // Find the current word/token being typed
+    var start = end;
+    while (start > 0 && /[\w.$#]/.test(line.charAt(start - 1))) {
+      start--;
+    }
+    var token = line.substring(start, end).toLowerCase();
+
+    var list = [];
+
+    if (!insideMustache) {
+      // Outside mustache — suggest ST.js control flow keys
+      ST_COMPLETIONS.stKeys.forEach(function (c) {
+        if (!token || c.text.toLowerCase().indexOf(token) > -1 || c.displayText.toLowerCase().indexOf(token) > -1) {
+          list.push(c);
+        }
+      });
+    } else {
+      // Inside {{ }} — suggest methods
+
+      // If user typed a dot, suggest instance methods
+      if (before.charAt(end - token.length - 1) === ".") {
+        var dotToken = token;
+        var allDotMethods = [].concat(
+          ST_COMPLETIONS.string,
+          ST_COMPLETIONS.array,
+          ST_COMPLETIONS.number,
+          ST_COMPLETIONS.date
+        );
+        allDotMethods.forEach(function (c) {
+          var t = c.text.replace(/^\./, "");
+          if (!dotToken || t.toLowerCase().indexOf(dotToken) > -1) {
+            list.push({ text: t, displayText: c.displayText });
+          }
+        });
+      }
+      // If user typed "Math." suggest Math methods
+      else if (before.indexOf("Math.") > -1 && before.lastIndexOf("Math.") > mustacheStart) {
+        ST_COMPLETIONS.math.forEach(function (c) {
+          var t = c.text.replace(/^Math\./, "");
+          if (!token || t.toLowerCase().indexOf(token) > -1) {
+            list.push({ text: t, displayText: c.displayText });
+          }
+        });
+      }
+      // If user typed "Object." or "JSON."
+      else if (before.indexOf("Object.") > -1 && before.lastIndexOf("Object.") > mustacheStart) {
+        ST_COMPLETIONS.object.forEach(function (c) {
+          if (c.text.startsWith("Object.")) {
+            var t = c.text.replace(/^Object\./, "");
+            if (!token || t.toLowerCase().indexOf(token) > -1) {
+              list.push({ text: t, displayText: c.displayText });
+            }
+          }
+        });
+      }
+      else if (before.indexOf("JSON.") > -1 && before.lastIndexOf("JSON.") > mustacheStart) {
+        ST_COMPLETIONS.object.forEach(function (c) {
+          if (c.text.startsWith("JSON.")) {
+            var t = c.text.replace(/^JSON\./, "");
+            if (!token || t.toLowerCase().indexOf(token) > -1) {
+              list.push({ text: t, displayText: c.displayText });
+            }
+          }
+        });
+      }
+      else {
+        // General — suggest everything relevant
+        var allItems = [].concat(
+          ST_COMPLETIONS.math,
+          ST_COMPLETIONS.number,
+          ST_COMPLETIONS.object,
+          ST_COMPLETIONS.date,
+          ST_COMPLETIONS.util
+        );
+        allItems.forEach(function (c) {
+          if (!token || c.text.toLowerCase().indexOf(token) > -1 || c.displayText.toLowerCase().indexOf(token) > -1) {
+            list.push(c);
+          }
+        });
+      }
+    }
+
+    if (list.length === 0) return null;
+
+    return {
+      list: list,
+      from: CodeMirror.Pos(cursor.line, start),
+      to: CodeMirror.Pos(cursor.line, end),
+    };
+  }
+
+  // =============================================
   // EDITOR SETUP
   // =============================================
   var editorConfig = {
@@ -356,8 +598,26 @@
     indentWithTabs: false,
   };
 
+  var templateEditorConfig = Object.assign({}, editorConfig, {
+    extraKeys: {
+      "Ctrl-Space": function (cm) { cm.showHint({ hint: stHint, completeSingle: false }); },
+      "'.'": function (cm) {
+        cm.replaceSelection(".");
+        // Auto-show after dot if inside {{ }}
+        var cursor = cm.getCursor();
+        var line = cm.getLine(cursor.line);
+        var before = line.substring(0, cursor.ch);
+        var mustacheStart = before.lastIndexOf("{{");
+        var mustacheEnd = before.lastIndexOf("}}");
+        if (mustacheStart > -1 && mustacheStart > mustacheEnd) {
+          setTimeout(function () { cm.showHint({ hint: stHint, completeSingle: false }); }, 50);
+        }
+      },
+    },
+  });
+
   var dataEditor = CodeMirror.fromTextArea(document.getElementById("dataEditor"), editorConfig);
-  var templateEditor = CodeMirror.fromTextArea(document.getElementById("templateEditor"), editorConfig);
+  var templateEditor = CodeMirror.fromTextArea(document.getElementById("templateEditor"), templateEditorConfig);
   var resultEditor = CodeMirror.fromTextArea(document.getElementById("resultEditor"),
     Object.assign({}, editorConfig, { readOnly: true })
   );

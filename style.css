@@ -185,6 +185,70 @@ html, body {
   width: 14px;
 }
 
+/* Fold markers — more visible */
+.CodeMirror-foldgutter-open,
+.CodeMirror-foldgutter-folded {
+  cursor: pointer;
+  line-height: 1;
+  font-size: 14px;
+  color: var(--text-dim);
+  transition: color 0.15s;
+}
+
+.CodeMirror-foldgutter-open:hover,
+.CodeMirror-foldgutter-folded:hover {
+  color: var(--accent);
+}
+
+.CodeMirror-foldgutter-open::after {
+  content: "\25BE"; /* down triangle */
+}
+
+.CodeMirror-foldgutter-folded::after {
+  content: "\25B6"; /* right triangle */
+  color: var(--orange);
+}
+
+/* Folded placeholder tag */
+.CodeMirror-foldmarker {
+  color: var(--accent) !important;
+  background: rgba(189, 147, 249, 0.15);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0 4px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+/* =============================================
+   Autocomplete Popup (Dracula theme)
+   ============================================= */
+.CodeMirror-hints {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+  font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace !important;
+  font-size: 12px !important;
+  max-height: 260px !important;
+  padding: 4px 0 !important;
+  z-index: 1000 !important;
+}
+
+.CodeMirror-hint {
+  color: var(--text) !important;
+  padding: 4px 12px !important;
+  border-radius: 0 !important;
+  white-space: nowrap;
+  cursor: pointer;
+  line-height: 1.5;
+}
+
+.CodeMirror-hint-active {
+  background: var(--accent) !important;
+  color: var(--bg) !important;
+}
+
 /* Footer */
 .footer {
   height: var(--footer-height);
