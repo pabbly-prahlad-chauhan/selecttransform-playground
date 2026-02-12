@@ -5,7 +5,7 @@
 (function () {
   "use strict";
 
-  // --- Example Data ---
+  // --- Built-in Example Data ---
   var EXAMPLES = {
     basic: {
       data: '{\n  "name": "John",\n  "age": 30,\n  "city": "New York"\n}',
@@ -41,7 +41,202 @@
     },
   };
 
-  // --- Editor Setup ---
+  // =============================================
+  // SAVED TEMPLATES (localStorage)
+  // =============================================
+  var STORAGE_KEY = "st_playground_saved_templates";
+
+  function getSavedTemplates() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveTemplate(name, data, template) {
+    var saved = getSavedTemplates();
+    saved[name] = { data: data, template: template };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+  }
+
+  function deleteTemplate(name) {
+    var saved = getSavedTemplates();
+    delete saved[name];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+  }
+
+  function refreshSavedDropdown() {
+    var select = document.getElementById("savedTemplates");
+    var saved = getSavedTemplates();
+    var names = Object.keys(saved);
+
+    // Clear old saved options
+    while (select.options.length > 1) {
+      select.remove(1);
+    }
+
+    names.forEach(function (name) {
+      var opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      select.appendChild(opt);
+    });
+
+    // Show/hide delete button
+    document.getElementById("deleteTemplateBtn").style.display = names.length > 0 ? "inline-block" : "none";
+  }
+
+  // =============================================
+  // cURL PARSER
+  // =============================================
+  function parseCurl(curlStr) {
+    // Normalize: join line continuations and trim
+    var str = curlStr.replace(/\\\s*\n/g, " ").replace(/\\\s*\r\n/g, " ").trim();
+
+    // Remove leading 'curl' keyword
+    if (str.toLowerCase().startsWith("curl")) {
+      str = str.substring(4).trim();
+    }
+
+    var method = "GET";
+    var headers = {};
+    var body = null;
+    var url = "";
+
+    // Tokenize respecting quotes
+    var tokens = [];
+    var current = "";
+    var inSingle = false;
+    var inDouble = false;
+    for (var i = 0; i < str.length; i++) {
+      var ch = str[i];
+      if (ch === "'" && !inDouble) {
+        inSingle = !inSingle;
+      } else if (ch === '"' && !inSingle) {
+        inDouble = !inDouble;
+      } else if (ch === " " && !inSingle && !inDouble) {
+        if (current.length > 0) {
+          tokens.push(current);
+          current = "";
+        }
+      } else {
+        current += ch;
+      }
+    }
+    if (current.length > 0) tokens.push(current);
+
+    // Parse tokens
+    for (var t = 0; t < tokens.length; t++) {
+      var token = tokens[t];
+      if (token === "-X" || token === "--request") {
+        method = tokens[++t].toUpperCase();
+      } else if (token === "-H" || token === "--header") {
+        var hdr = tokens[++t];
+        var colonIdx = hdr.indexOf(":");
+        if (colonIdx > -1) {
+          var key = hdr.substring(0, colonIdx).trim();
+          var val = hdr.substring(colonIdx + 1).trim();
+          headers[key] = val;
+        }
+      } else if (token === "-d" || token === "--data" || token === "--data-raw" || token === "--data-binary") {
+        body = tokens[++t];
+        if (method === "GET") method = "POST";
+      } else if (token === "-u" || token === "--user") {
+        var creds = tokens[++t];
+        headers["Authorization"] = "Basic " + btoa(creds);
+      } else if (token.startsWith("http://") || token.startsWith("https://")) {
+        url = token;
+      } else if (!token.startsWith("-") && !url) {
+        // Might be a URL without protocol
+        if (token.includes(".") && !token.includes(":")) {
+          url = "https://" + token;
+        }
+      }
+    }
+
+    return { url: url, method: method, headers: headers, body: body };
+  }
+
+  function setCurlStatus(text, type) {
+    var el = document.getElementById("curlStatus");
+    el.textContent = text;
+    el.className = "curl-status" + (type ? " " + type : "");
+  }
+
+  function executeCurl() {
+    var curlInput = document.getElementById("curlInput");
+    var curlStr = curlInput.value.trim();
+
+    if (!curlStr) {
+      setCurlStatus("Paste a cURL command first", "error");
+      return;
+    }
+
+    var parsed;
+    try {
+      parsed = parseCurl(curlStr);
+    } catch (e) {
+      setCurlStatus("Failed to parse cURL: " + e.message, "error");
+      return;
+    }
+
+    if (!parsed.url) {
+      setCurlStatus("No URL found in cURL command", "error");
+      return;
+    }
+
+    var fetchUrl = parsed.url;
+    var useCors = document.getElementById("corsProxy").checked;
+    if (useCors) {
+      fetchUrl = "https://corsproxy.io/?" + encodeURIComponent(parsed.url);
+    }
+
+    var fetchOptions = {
+      method: parsed.method,
+      headers: parsed.headers,
+    };
+    if (parsed.body && parsed.method !== "GET" && parsed.method !== "HEAD") {
+      fetchOptions.body = parsed.body;
+    }
+
+    setCurlStatus("Executing...", "loading");
+    var btn = document.getElementById("curlExecuteBtn");
+    btn.disabled = true;
+    btn.textContent = "...";
+
+    fetch(fetchUrl, fetchOptions)
+      .then(function (response) {
+        if (!response.ok) {
+          return response.text().then(function (txt) {
+            throw new Error("HTTP " + response.status + ": " + txt.substring(0, 200));
+          });
+        }
+        return response.text();
+      })
+      .then(function (text) {
+        // Try to parse as JSON and pretty-print
+        try {
+          var json = JSON.parse(text);
+          dataEditor.setValue(JSON.stringify(json, null, 2));
+        } catch (e) {
+          // Not JSON, put raw text
+          dataEditor.setValue(text);
+        }
+        setCurlStatus("Response loaded (" + text.length + " bytes)", "success");
+      })
+      .catch(function (err) {
+        setCurlStatus("Error: " + err.message, "error");
+      })
+      .finally(function () {
+        btn.disabled = false;
+        btn.textContent = "Execute";
+      });
+  }
+
+  // =============================================
+  // EDITOR SETUP
+  // =============================================
   var editorConfig = {
     mode: { name: "javascript", json: true },
     theme: "dracula",
@@ -61,11 +256,13 @@
     Object.assign({}, editorConfig, { readOnly: true })
   );
 
-  // --- Load default example ---
+  // Load default example
   dataEditor.setValue(EXAMPLES.basic.data);
   templateEditor.setValue(EXAMPLES.basic.template);
 
-  // --- Transform Logic ---
+  // =============================================
+  // TRANSFORM LOGIC
+  // =============================================
   function runTransform() {
     var statusEl = document.getElementById("resultStatus");
     try {
@@ -95,7 +292,6 @@
     }
   }
 
-  // --- Format JSON ---
   function formatEditors() {
     try {
       var d = JSON.parse(dataEditor.getValue());
@@ -107,7 +303,7 @@
     } catch (e) { /* ignore parse errors */ }
   }
 
-  // --- Auto-run on change (debounced) ---
+  // Auto-run on change (debounced)
   var debounceTimer;
   function scheduleRun() {
     clearTimeout(debounceTimer);
@@ -117,7 +313,11 @@
   dataEditor.on("change", scheduleRun);
   templateEditor.on("change", scheduleRun);
 
-  // --- Button handlers ---
+  // =============================================
+  // EVENT HANDLERS
+  // =============================================
+
+  // --- Run / Format / Clear ---
   document.getElementById("runBtn").addEventListener("click", runTransform);
   document.getElementById("formatBtn").addEventListener("click", formatEditors);
   document.getElementById("clearBtn").addEventListener("click", function () {
@@ -126,7 +326,7 @@
     document.getElementById("resultStatus").className = "panel-hint";
   });
 
-  // --- Examples dropdown ---
+  // --- Built-in Examples dropdown ---
   document.getElementById("examples").addEventListener("change", function () {
     var key = this.value;
     if (key && EXAMPLES[key]) {
@@ -137,17 +337,82 @@
     this.value = "";
   });
 
+  // --- Saved Templates dropdown ---
+  document.getElementById("savedTemplates").addEventListener("change", function () {
+    var key = this.value;
+    if (key) {
+      var saved = getSavedTemplates();
+      if (saved[key]) {
+        dataEditor.setValue(saved[key].data);
+        templateEditor.setValue(saved[key].template);
+        runTransform();
+      }
+    }
+  });
+
+  // --- Save Template ---
+  document.getElementById("saveTemplateBtn").addEventListener("click", function () {
+    var name = prompt("Enter a name for this template:");
+    if (!name || !name.trim()) return;
+    name = name.trim();
+
+    var data = dataEditor.getValue();
+    var template = templateEditor.getValue();
+
+    saveTemplate(name, data, template);
+    refreshSavedDropdown();
+
+    // Select the newly saved template
+    document.getElementById("savedTemplates").value = name;
+  });
+
+  // --- Delete Template ---
+  document.getElementById("deleteTemplateBtn").addEventListener("click", function () {
+    var select = document.getElementById("savedTemplates");
+    var name = select.value;
+    if (!name) {
+      alert("Select a saved template first to delete.");
+      return;
+    }
+    if (confirm('Delete template "' + name + '"?')) {
+      deleteTemplate(name);
+      refreshSavedDropdown();
+      select.value = "";
+    }
+  });
+
+  // --- cURL Execute ---
+  document.getElementById("curlExecuteBtn").addEventListener("click", executeCurl);
+
+  // --- cURL Collapse/Expand ---
+  document.getElementById("curlCollapseBtn").addEventListener("click", function () {
+    var body = document.getElementById("curlBody");
+    var btn = this;
+    if (body.classList.contains("collapsed")) {
+      body.classList.remove("collapsed");
+      btn.innerHTML = "&#9650;"; // up arrow
+    } else {
+      body.classList.add("collapsed");
+      btn.innerHTML = "&#9660;"; // down arrow
+    }
+    // Refresh editor after layout change
+    setTimeout(function () { dataEditor.refresh(); }, 50);
+  });
+
   // --- Keyboard shortcuts ---
   document.addEventListener("keydown", function (e) {
-    // Ctrl+Enter = Run
     if (e.ctrlKey && e.key === "Enter") {
       e.preventDefault();
       runTransform();
     }
-    // Ctrl+Shift+F = Format
     if (e.ctrlKey && e.shiftKey && e.key === "F") {
       e.preventDefault();
       formatEditors();
+    }
+    // Ctrl+S = Save template
+    if (e.ctrlKey && e.key === "s") {
+      e.preventDefault();
+      document.getElementById("saveTemplateBtn").click();
     }
   });
 
@@ -179,7 +444,6 @@
       function onMouseUp() {
         document.removeEventListener("mousemove", onMouseMove);
         document.removeEventListener("mouseup", onMouseUp);
-        // Refresh editors after resize
         dataEditor.refresh();
         templateEditor.refresh();
         resultEditor.refresh();
@@ -190,6 +454,7 @@
     });
   });
 
-  // --- Initial run ---
+  // --- Init ---
+  refreshSavedDropdown();
   setTimeout(runTransform, 100);
 })();

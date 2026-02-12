@@ -211,3 +211,163 @@ html, body {
   font-size: 11px;
   color: var(--text-dim);
 }
+
+/* Header separator */
+.separator {
+  color: var(--border);
+  font-size: 14px;
+  margin: 0 2px;
+}
+
+/* Save Template button */
+#saveTemplateBtn {
+  background: var(--green);
+  color: var(--bg);
+  border-color: var(--green);
+  font-weight: 600;
+}
+
+#saveTemplateBtn:hover {
+  background: #6dffa0;
+  border-color: #6dffa0;
+  color: var(--bg);
+}
+
+#deleteTemplateBtn {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+#deleteTemplateBtn:hover {
+  background: var(--red);
+  color: var(--bg);
+}
+
+/* =============================================
+   cURL Section
+   ============================================= */
+.curl-section {
+  border-bottom: 2px solid var(--accent);
+}
+
+.curl-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  min-height: 30px;
+}
+
+.curl-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cors-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.cors-toggle input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.curl-controls button {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.curl-controls button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+#curlExecuteBtn {
+  background: var(--orange);
+  color: var(--bg);
+  border-color: var(--orange);
+  font-weight: 600;
+}
+
+#curlExecuteBtn:hover {
+  background: #ffc98a;
+  border-color: #ffc98a;
+  color: var(--bg);
+}
+
+#curlExecuteBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+#curlCollapseBtn {
+  font-size: 10px;
+  padding: 3px 6px;
+}
+
+.curl-body {
+  transition: max-height 0.2s ease, padding 0.2s ease;
+  overflow: hidden;
+}
+
+.curl-body.collapsed {
+  max-height: 0 !important;
+  padding: 0 !important;
+}
+
+#curlInput {
+  width: 100%;
+  min-height: 80px;
+  max-height: 150px;
+  resize: vertical;
+  padding: 8px 12px;
+  background: var(--bg);
+  color: var(--text);
+  border: none;
+  border-bottom: 1px solid var(--border);
+  font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 12px;
+  outline: none;
+}
+
+#curlInput::placeholder {
+  color: var(--text-dim);
+  opacity: 0.6;
+}
+
+#curlInput:focus {
+  background: #1a1a2a;
+}
+
+.curl-status {
+  padding: 3px 12px;
+  font-size: 11px;
+  color: var(--text-dim);
+  min-height: 4px;
+}
+
+.curl-status.success {
+  color: var(--green);
+}
+
+.curl-status.error {
+  color: var(--red);
+}
+
+.curl-status.loading {
+  color: var(--yellow);
+}
