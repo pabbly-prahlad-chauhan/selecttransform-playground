@@ -13,7 +13,7 @@
       return "/api/proxy";
     }
     // Default: deployed Vercel proxy
-    return "https://selecttransform-playground.vercel.app/api/proxy";
+    return "https://st-playground.vercel.app/api/proxy";
   })();
 
   // --- Built-in Example Data ---
