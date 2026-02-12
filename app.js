@@ -343,17 +343,33 @@
   // =============================================
   // ST.js AUTOCOMPLETE for Template Editor
   // =============================================
+  // Helper: create a completion that inserts text and places cursor at | position
+  function snippetCompletion(insertText, display) {
+    var cursorOffset = insertText.indexOf("|");
+    var finalText = insertText.replace("|", "");
+    return {
+      text: finalText,
+      displayText: display,
+      hint: cursorOffset > -1 ? function (cm, data, completion) {
+        cm.replaceRange(finalText, data.from, data.to);
+        // Place cursor at the | position
+        var newPos = data.from.ch + cursorOffset;
+        cm.setCursor({ line: data.from.line, ch: newPos });
+      } : undefined
+    };
+  }
+
   var ST_COMPLETIONS = {
     // ST.js control flow keys
     stKeys: [
-      { text: '"{{#each }}": ', displayText: '#each — loop over array' },
-      { text: '"{{#if }}": ', displayText: '#if — conditional' },
-      { text: '"{{#elseif }}": ', displayText: '#elseif — else-if branch' },
+      snippetCompletion('"{{#each |}}": ', '#each — loop over array'),
+      snippetCompletion('"{{#if |}}": ', '#if — conditional'),
+      snippetCompletion('"{{#elseif |}}": ', '#elseif — else-if branch'),
       { text: '"{{#else}}": ', displayText: '#else — fallback branch' },
       { text: '"{{#merge}}": ', displayText: '#merge — merge objects' },
       { text: '"{{#concat}}": ', displayText: '#concat — concatenate arrays' },
       { text: '"{{#let}}": ', displayText: '#let — define local vars' },
-      { text: '"{{ { ...this, } }}"', displayText: '{{ { ...this } }} — spread + add fields' },
+      snippetCompletion('"{{ { ...this, | } }}"', '{{ { ...this } }} — spread + add fields'),
     ],
     // String methods
     string: [
@@ -362,93 +378,93 @@
       { text: '.trim()', displayText: '.trim() — remove whitespace' },
       { text: '.trimStart()', displayText: '.trimStart() — trim leading whitespace' },
       { text: '.trimEnd()', displayText: '.trimEnd() — trim trailing whitespace' },
-      { text: '.split()', displayText: '.split(sep) — string to array' },
-      { text: '.replace()', displayText: '.replace(old, new) — replace first match' },
-      { text: '.replaceAll()', displayText: '.replaceAll(old, new) — replace all' },
-      { text: '.slice()', displayText: '.slice(start, end) — substring' },
-      { text: '.substring()', displayText: '.substring(start, end) — extract part' },
-      { text: '.charAt()', displayText: '.charAt(i) — char at index' },
-      { text: '.charCodeAt()', displayText: '.charCodeAt(i) — char code' },
-      { text: '.indexOf()', displayText: '.indexOf(str) — find position' },
-      { text: '.lastIndexOf()', displayText: '.lastIndexOf(str) — find last position' },
-      { text: '.includes()', displayText: '.includes(str) — check contains' },
-      { text: '.startsWith()', displayText: '.startsWith(str) — check prefix' },
-      { text: '.endsWith()', displayText: '.endsWith(str) — check suffix' },
-      { text: '.match()', displayText: '.match(regex) — regex match' },
-      { text: '.search()', displayText: '.search(regex) — regex search index' },
-      { text: '.padStart()', displayText: '.padStart(len, ch) — pad start' },
-      { text: '.padEnd()', displayText: '.padEnd(len, ch) — pad end' },
-      { text: '.repeat()', displayText: '.repeat(n) — repeat n times' },
-      { text: '.concat()', displayText: '.concat(str) — concatenate strings' },
-      { text: '.at()', displayText: '.at(i) — char at index (supports negative)' },
+      snippetCompletion('.split("|")', '.split(sep) — string to array'),
+      snippetCompletion('.replace("|", "")', '.replace(old, new) — replace first match'),
+      snippetCompletion('.replaceAll("|", "")', '.replaceAll(old, new) — replace all'),
+      snippetCompletion('.slice(|)', '.slice(start, end) — substring'),
+      snippetCompletion('.substring(|)', '.substring(start, end) — extract part'),
+      snippetCompletion('.charAt(|)', '.charAt(i) — char at index'),
+      snippetCompletion('.charCodeAt(|)', '.charCodeAt(i) — char code'),
+      snippetCompletion('.indexOf("|")', '.indexOf(str) — find position'),
+      snippetCompletion('.lastIndexOf("|")', '.lastIndexOf(str) — find last position'),
+      snippetCompletion('.includes("|")', '.includes(str) — check contains'),
+      snippetCompletion('.startsWith("|")', '.startsWith(str) — check prefix'),
+      snippetCompletion('.endsWith("|")', '.endsWith(str) — check suffix'),
+      snippetCompletion('.match(/|/)', '.match(regex) — regex match'),
+      snippetCompletion('.search(/|/)', '.search(regex) — regex search index'),
+      snippetCompletion('.padStart(|, " ")', '.padStart(len, ch) — pad start'),
+      snippetCompletion('.padEnd(|, " ")', '.padEnd(len, ch) — pad end'),
+      snippetCompletion('.repeat(|)', '.repeat(n) — repeat n times'),
+      snippetCompletion('.concat("|")', '.concat(str) — concatenate strings'),
+      snippetCompletion('.at(|)', '.at(i) — char at index (supports negative)'),
       { text: '.length', displayText: '.length — string length' },
     ],
     // Array methods
     array: [
-      { text: '.map()', displayText: '.map(fn) — transform each element' },
-      { text: '.filter()', displayText: '.filter(fn) — keep matching elements' },
-      { text: '.reduce()', displayText: '.reduce(fn, init) — reduce to value' },
-      { text: '.find()', displayText: '.find(fn) — first matching element' },
-      { text: '.findIndex()', displayText: '.findIndex(fn) — index of first match' },
-      { text: '.some()', displayText: '.some(fn) — any match?' },
-      { text: '.every()', displayText: '.every(fn) — all match?' },
-      { text: '.forEach()', displayText: '.forEach(fn) — iterate (no return)' },
-      { text: '.join()', displayText: '.join(sep) — array to string' },
-      { text: '.includes()', displayText: '.includes(val) — check membership' },
-      { text: '.indexOf()', displayText: '.indexOf(val) — find index' },
-      { text: '.lastIndexOf()', displayText: '.lastIndexOf(val) — last index' },
-      { text: '.slice()', displayText: '.slice(start, end) — subarray' },
-      { text: '.concat()', displayText: '.concat(arr) — merge arrays' },
-      { text: '.flat()', displayText: '.flat(depth) — flatten nested arrays' },
-      { text: '.flatMap()', displayText: '.flatMap(fn) — map then flatten' },
-      { text: '.sort()', displayText: '.sort(fn) — sort in place' },
+      snippetCompletion('.map(x => |x)', '.map(fn) — transform each element'),
+      snippetCompletion('.filter(x => |x)', '.filter(fn) — keep matching elements'),
+      snippetCompletion('.reduce((acc, x) => |acc, 0)', '.reduce(fn, init) — reduce to value'),
+      snippetCompletion('.find(x => |x)', '.find(fn) — first matching element'),
+      snippetCompletion('.findIndex(x => |x)', '.findIndex(fn) — index of first match'),
+      snippetCompletion('.some(x => |x)', '.some(fn) — any match?'),
+      snippetCompletion('.every(x => |x)', '.every(fn) — all match?'),
+      snippetCompletion('.forEach(x => |x)', '.forEach(fn) — iterate (no return)'),
+      snippetCompletion('.join("|")', '.join(sep) — array to string'),
+      snippetCompletion('.includes(|)', '.includes(val) — check membership'),
+      snippetCompletion('.indexOf(|)', '.indexOf(val) — find index'),
+      snippetCompletion('.lastIndexOf(|)', '.lastIndexOf(val) — last index'),
+      snippetCompletion('.slice(|)', '.slice(start, end) — subarray'),
+      snippetCompletion('.concat(|)', '.concat(arr) — merge arrays'),
+      snippetCompletion('.flat(|)', '.flat(depth) — flatten nested arrays'),
+      snippetCompletion('.flatMap(x => |x)', '.flatMap(fn) — map then flatten'),
+      snippetCompletion('.sort((a, b) => |a - b)', '.sort(fn) — sort in place'),
       { text: '.reverse()', displayText: '.reverse() — reverse in place' },
-      { text: '.fill()', displayText: '.fill(val, start, end) — fill with value' },
-      { text: '.at()', displayText: '.at(i) — element at index (neg ok)' },
+      snippetCompletion('.fill(|)', '.fill(val, start, end) — fill with value'),
+      snippetCompletion('.at(|)', '.at(i) — element at index (neg ok)'),
       { text: '.length', displayText: '.length — array length' },
       { text: '.toString()', displayText: '.toString() — to string' },
     ],
     // Number / Math
     math: [
-      { text: 'Math.round()', displayText: 'Math.round(n) — round to nearest' },
-      { text: 'Math.floor()', displayText: 'Math.floor(n) — round down' },
-      { text: 'Math.ceil()', displayText: 'Math.ceil(n) — round up' },
-      { text: 'Math.abs()', displayText: 'Math.abs(n) — absolute value' },
-      { text: 'Math.max()', displayText: 'Math.max(a, b, ...) — maximum' },
-      { text: 'Math.min()', displayText: 'Math.min(a, b, ...) — minimum' },
-      { text: 'Math.pow()', displayText: 'Math.pow(base, exp) — power' },
-      { text: 'Math.sqrt()', displayText: 'Math.sqrt(n) — square root' },
+      snippetCompletion('Math.round(|)', 'Math.round(n) — round to nearest'),
+      snippetCompletion('Math.floor(|)', 'Math.floor(n) — round down'),
+      snippetCompletion('Math.ceil(|)', 'Math.ceil(n) — round up'),
+      snippetCompletion('Math.abs(|)', 'Math.abs(n) — absolute value'),
+      snippetCompletion('Math.max(|)', 'Math.max(a, b, ...) — maximum'),
+      snippetCompletion('Math.min(|)', 'Math.min(a, b, ...) — minimum'),
+      snippetCompletion('Math.pow(|, 2)', 'Math.pow(base, exp) — power'),
+      snippetCompletion('Math.sqrt(|)', 'Math.sqrt(n) — square root'),
       { text: 'Math.random()', displayText: 'Math.random() — 0 to 1 random' },
-      { text: 'Math.trunc()', displayText: 'Math.trunc(n) — remove decimals' },
-      { text: 'Math.sign()', displayText: 'Math.sign(n) — -1, 0, or 1' },
+      snippetCompletion('Math.trunc(|)', 'Math.trunc(n) — remove decimals'),
+      snippetCompletion('Math.sign(|)', 'Math.sign(n) — -1, 0, or 1'),
       { text: 'Math.PI', displayText: 'Math.PI — 3.14159...' },
     ],
     // Number methods
     number: [
-      { text: '.toFixed()', displayText: '.toFixed(digits) — format decimals' },
+      snippetCompletion('.toFixed(|2)', '.toFixed(digits) — format decimals'),
       { text: '.toString()', displayText: '.toString(radix) — to string' },
-      { text: '.toPrecision()', displayText: '.toPrecision(n) — n significant digits' },
+      snippetCompletion('.toPrecision(|)', '.toPrecision(n) — n significant digits'),
       { text: '.toLocaleString()', displayText: '.toLocaleString() — locale format' },
-      { text: 'Number()', displayText: 'Number(val) — convert to number' },
-      { text: 'Number.isInteger()', displayText: 'Number.isInteger(n) — check integer' },
-      { text: 'Number.isFinite()', displayText: 'Number.isFinite(n) — check finite' },
-      { text: 'Number.isNaN()', displayText: 'Number.isNaN(n) — check NaN' },
-      { text: 'parseInt()', displayText: 'parseInt(str, radix) — parse integer' },
-      { text: 'parseFloat()', displayText: 'parseFloat(str) — parse float' },
+      snippetCompletion('Number(|)', 'Number(val) — convert to number'),
+      snippetCompletion('Number.isInteger(|)', 'Number.isInteger(n) — check integer'),
+      snippetCompletion('Number.isFinite(|)', 'Number.isFinite(n) — check finite'),
+      snippetCompletion('Number.isNaN(|)', 'Number.isNaN(n) — check NaN'),
+      snippetCompletion('parseInt(|, 10)', 'parseInt(str, radix) — parse integer'),
+      snippetCompletion('parseFloat(|)', 'parseFloat(str) — parse float'),
     ],
     // Object / JSON
     object: [
-      { text: 'Object.keys()', displayText: 'Object.keys(obj) — key array' },
-      { text: 'Object.values()', displayText: 'Object.values(obj) — value array' },
-      { text: 'Object.entries()', displayText: 'Object.entries(obj) — [k,v] pairs' },
-      { text: 'Object.assign()', displayText: 'Object.assign(target, src) — merge' },
-      { text: 'Object.fromEntries()', displayText: 'Object.fromEntries(arr) — entries to obj' },
-      { text: 'JSON.stringify()', displayText: 'JSON.stringify(val) — serialize' },
-      { text: 'JSON.parse()', displayText: 'JSON.parse(str) — deserialize' },
+      snippetCompletion('Object.keys(|)', 'Object.keys(obj) — key array'),
+      snippetCompletion('Object.values(|)', 'Object.values(obj) — value array'),
+      snippetCompletion('Object.entries(|)', 'Object.entries(obj) — [k,v] pairs'),
+      snippetCompletion('Object.assign({}, |)', 'Object.assign(target, src) — merge'),
+      snippetCompletion('Object.fromEntries(|)', 'Object.fromEntries(arr) — entries to obj'),
+      snippetCompletion('JSON.stringify(|)', 'JSON.stringify(val) — serialize'),
+      snippetCompletion('JSON.parse(|)', 'JSON.parse(str) — deserialize'),
     ],
     // Date
     date: [
-      { text: 'new Date()', displayText: 'new Date(val) — create Date' },
+      snippetCompletion('new Date(|)', 'new Date(val) — create Date'),
       { text: '.getFullYear()', displayText: '.getFullYear() — 4-digit year' },
       { text: '.getMonth()', displayText: '.getMonth() — month (0-11)' },
       { text: '.getDate()', displayText: '.getDate() — day of month' },
@@ -464,18 +480,60 @@
     ],
     // Ternary / Boolean / Utils
     util: [
-      { text: ' ? "" : ""', displayText: 'ternary — condition ? a : b' },
-      { text: ' || ""', displayText: '|| fallback — default value' },
-      { text: 'Boolean()', displayText: 'Boolean(val) — to boolean' },
-      { text: 'String()', displayText: 'String(val) — to string' },
-      { text: 'Array.isArray()', displayText: 'Array.isArray(val) — check array' },
-      { text: 'Array.from()', displayText: 'Array.from(iterable) — to array' },
-      { text: 'encodeURIComponent()', displayText: 'encodeURIComponent(str) — encode URI' },
-      { text: 'decodeURIComponent()', displayText: 'decodeURIComponent(str) — decode URI' },
-      { text: 'isNaN()', displayText: 'isNaN(val) — check not-a-number' },
-      { text: 'isFinite()', displayText: 'isFinite(val) — check finite' },
+      snippetCompletion(' ? "|" : ""', 'ternary — condition ? a : b'),
+      snippetCompletion(' || "|"', '|| fallback — default value'),
+      snippetCompletion('Boolean(|)', 'Boolean(val) — to boolean'),
+      snippetCompletion('String(|)', 'String(val) — to string'),
+      snippetCompletion('Array.isArray(|)', 'Array.isArray(val) — check array'),
+      snippetCompletion('Array.from(|)', 'Array.from(iterable) — to array'),
+      snippetCompletion('encodeURIComponent(|)', 'encodeURIComponent(str) — encode URI'),
+      snippetCompletion('decodeURIComponent(|)', 'decodeURIComponent(str) — decode URI'),
+      snippetCompletion('isNaN(|)', 'isNaN(val) — check not-a-number'),
+      snippetCompletion('isFinite(|)', 'isFinite(val) — check finite'),
     ],
   };
+
+  // Resolve a dot-path (like "data.items") against a JSON object
+  function resolveDataPath(obj, path) {
+    if (!obj || !path) return undefined;
+    var parts = path.split(".");
+    var current = obj;
+    for (var i = 0; i < parts.length; i++) {
+      if (current == null) return undefined;
+      current = current[parts[i]];
+    }
+    return current;
+  }
+
+  // Detect JS type from a value
+  function detectType(val) {
+    if (val === undefined || val === null) return "unknown";
+    if (Array.isArray(val)) return "array";
+    if (typeof val === "string") return "string";
+    if (typeof val === "number") return "number";
+    if (typeof val === "boolean") return "boolean";
+    if (val instanceof Date) return "date";
+    if (typeof val === "object") return "object";
+    return "unknown";
+  }
+
+  // Strip dot prefix and preserve the hint function for snippet completions
+  function stripPrefix(c, prefixRegex) {
+    var t = c.text.replace(prefixRegex, "");
+    var item = { text: t, displayText: c.displayText };
+    if (c.hint) {
+      // Adjust the snippet hint to work with stripped text
+      item.hint = function (cm, data, completion) {
+        var cursorOffset = c.text.replace(prefixRegex, "").indexOf("(") + 1;
+        cm.replaceRange(t, data.from, data.to);
+        // Try to place cursor inside first paren
+        if (t.indexOf("(") > -1 && t.indexOf("()") === -1) {
+          cm.setCursor({ line: data.from.line, ch: data.from.ch + t.indexOf("(") + 1 });
+        }
+      };
+    }
+    return item;
+  }
 
   function stHint(cm) {
     var cursor = cm.getCursor();
@@ -512,75 +570,110 @@
       var hasDot = before.charAt(end - token.length - 1) === ".";
 
       if (hasDot) {
-        // Find the word before the dot to detect Math., Object., JSON., Number., Date.
+        // Find the full variable path before the dot (e.g. "data.campaigns" from "data.campaigns.")
         var dotPos = end - token.length - 1;
         var prefixEnd = dotPos;
         var prefixStart = prefixEnd;
-        while (prefixStart > 0 && /[\w$]/.test(line.charAt(prefixStart - 1))) {
+        while (prefixStart > 0 && /[\w$.]/.test(line.charAt(prefixStart - 1))) {
           prefixStart--;
         }
-        var prefix = line.substring(prefixStart, prefixEnd);
+        var fullPrefix = line.substring(prefixStart, prefixEnd);
+        // Last segment for static class detection
+        var lastSegment = fullPrefix.indexOf(".") > -1 ? fullPrefix.split(".").pop() : fullPrefix;
+        var firstSegment = fullPrefix.split(".")[0];
 
-        if (prefix === "Math") {
+        if (firstSegment === "Math" || lastSegment === "Math") {
           ST_COMPLETIONS.math.forEach(function (c) {
-            var t = c.text.replace(/^Math\./, "");
-            if (!token || t.toLowerCase().indexOf(token) > -1) {
-              list.push({ text: t, displayText: c.displayText });
+            var item = stripPrefix(c, /^Math\./);
+            if (!token || item.text.toLowerCase().indexOf(token) > -1) {
+              list.push(item);
             }
           });
-        } else if (prefix === "Object") {
+        } else if (firstSegment === "Object" || lastSegment === "Object") {
           ST_COMPLETIONS.object.forEach(function (c) {
-            if (c.text.startsWith("Object.")) {
-              var t = c.text.replace(/^Object\./, "");
-              if (!token || t.toLowerCase().indexOf(token) > -1) {
-                list.push({ text: t, displayText: c.displayText });
+            if (c.text.startsWith("Object.") || c.text.indexOf("Object.") > -1) {
+              var item = stripPrefix(c, /^Object\./);
+              if (!token || item.text.toLowerCase().indexOf(token) > -1) {
+                list.push(item);
               }
             }
           });
-        } else if (prefix === "JSON") {
+        } else if (firstSegment === "JSON" || lastSegment === "JSON") {
           ST_COMPLETIONS.object.forEach(function (c) {
             if (c.text.startsWith("JSON.")) {
-              var t = c.text.replace(/^JSON\./, "");
-              if (!token || t.toLowerCase().indexOf(token) > -1) {
-                list.push({ text: t, displayText: c.displayText });
+              var item = stripPrefix(c, /^JSON\./);
+              if (!token || item.text.toLowerCase().indexOf(token) > -1) {
+                list.push(item);
               }
             }
           });
-        } else if (prefix === "Number") {
+        } else if (firstSegment === "Number" || lastSegment === "Number") {
           ST_COMPLETIONS.number.forEach(function (c) {
-            if (c.text.startsWith(".")) {
-              var t = c.text.replace(/^\./, "");
-              if (!token || t.toLowerCase().indexOf(token) > -1) {
-                list.push({ text: t, displayText: c.displayText });
+            if (c.text.startsWith(".") || c.text.startsWith("Number.")) {
+              var item = stripPrefix(c, /^(Number)?\./);
+              if (!token || item.text.toLowerCase().indexOf(token) > -1) {
+                list.push(item);
               }
             }
           });
-        } else if (prefix === "Date") {
+        } else if (firstSegment === "Date" || lastSegment === "Date") {
           ST_COMPLETIONS.date.forEach(function (c) {
             if (c.text.startsWith(".") || c.text.startsWith("Date.")) {
-              var t = c.text.replace(/^(Date)?\./, "");
-              if (!token || t.toLowerCase().indexOf(token) > -1) {
-                list.push({ text: t, displayText: c.displayText });
+              var item = stripPrefix(c, /^(Date)?\./);
+              if (!token || item.text.toLowerCase().indexOf(token) > -1) {
+                list.push(item);
               }
             }
           });
         } else {
-          // Generic dot — show all instance methods (String, Array, Number, Date)
-          var allDotMethods = [].concat(
-            ST_COMPLETIONS.string,
-            ST_COMPLETIONS.array,
-            ST_COMPLETIONS.number,
-            ST_COMPLETIONS.date
-          );
-          allDotMethods.forEach(function (c) {
-            var t = c.text.replace(/^\./, "");
-            if (!token || t.toLowerCase().indexOf(token) > -1) {
-              list.push({ text: t, displayText: c.displayText });
+          // Try to detect type from data editor
+          var detectedType = "unknown";
+          try {
+            var dataObj = JSON.parse(dataEditor.getValue());
+            var val = resolveDataPath(dataObj, fullPrefix);
+            detectedType = detectType(val);
+          } catch (e) { /* ignore parse errors */ }
+
+          var methodSets;
+          if (detectedType === "string") {
+            methodSets = ST_COMPLETIONS.string;
+          } else if (detectedType === "array") {
+            methodSets = ST_COMPLETIONS.array;
+          } else if (detectedType === "number") {
+            methodSets = ST_COMPLETIONS.number;
+          } else if (detectedType === "object") {
+            // For objects, suggest the object's own keys + Object methods
+            methodSets = [];
+            try {
+              var dataObj2 = JSON.parse(dataEditor.getValue());
+              var objVal = resolveDataPath(dataObj2, fullPrefix);
+              if (objVal && typeof objVal === "object" && !Array.isArray(objVal)) {
+                Object.keys(objVal).forEach(function (key) {
+                  var childType = detectType(objVal[key]);
+                  var typeLabel = childType === "array" ? "[]" : childType === "object" ? "{}" : childType;
+                  methodSets.push({ text: key, displayText: key + " — " + typeLabel });
+                });
+              }
+            } catch (e) {}
+          } else {
+            // Unknown type — show all instance methods
+            methodSets = [].concat(
+              ST_COMPLETIONS.string,
+              ST_COMPLETIONS.array,
+              ST_COMPLETIONS.number,
+              ST_COMPLETIONS.date
+            );
+          }
+
+          methodSets.forEach(function (c) {
+            var item = stripPrefix(c, /^\./);
+            if (!token || item.text.toLowerCase().indexOf(token) > -1) {
+              list.push(item);
             }
           });
         }
       } else {
-        // No dot — suggest global functions and ST.js utils
+        // No dot — suggest global functions, utils, AND top-level data keys
         var allItems = [].concat(
           ST_COMPLETIONS.math,
           ST_COMPLETIONS.number,
@@ -593,6 +686,20 @@
             list.push(c);
           }
         });
+
+        // Also suggest top-level keys from data
+        try {
+          var dataObj3 = JSON.parse(dataEditor.getValue());
+          if (dataObj3 && typeof dataObj3 === "object") {
+            Object.keys(dataObj3).forEach(function (key) {
+              if (!token || key.toLowerCase().indexOf(token) > -1) {
+                var childType = detectType(dataObj3[key]);
+                var typeLabel = childType === "array" ? "[]" : childType === "object" ? "{}" : childType;
+                list.push({ text: key, displayText: key + " — data." + typeLabel });
+              }
+            });
+          }
+        } catch (e) {}
       }
     }
 
@@ -621,9 +728,26 @@
     indentWithTabs: false,
   };
 
+  // Hint options — Tab accepts, Enter accepts
+  var hintOpts = { hint: stHint, completeSingle: false };
+
+  // Create data editor first so stHint can read its value for type detection
+  var dataEditor = CodeMirror.fromTextArea(document.getElementById("dataEditor"), editorConfig);
+
   var templateEditorConfig = Object.assign({}, editorConfig, {
     extraKeys: {
-      "Ctrl-Space": function (cm) { cm.showHint({ hint: stHint, completeSingle: false }); },
+      "Ctrl-Space": function (cm) { cm.showHint(hintOpts); },
+      "Tab": function (cm) {
+        // If hint popup is open, Tab accepts the selected hint
+        if (cm.state.completionActive) {
+          return CodeMirror.Pass; // let show-hint addon handle Tab
+        }
+        if (cm.somethingSelected()) {
+          cm.indentSelection("add");
+        } else {
+          cm.replaceSelection("  ", "end");
+        }
+      },
       "'.'": function (cm) {
         cm.replaceSelection(".");
         // Auto-show after dot if inside {{ }}
@@ -633,13 +757,12 @@
         var mustacheStart = before.lastIndexOf("{{");
         var mustacheEnd = before.lastIndexOf("}}");
         if (mustacheStart > -1 && mustacheStart > mustacheEnd) {
-          setTimeout(function () { cm.showHint({ hint: stHint, completeSingle: false }); }, 50);
+          setTimeout(function () { cm.showHint(hintOpts); }, 50);
         }
       },
     },
   });
 
-  var dataEditor = CodeMirror.fromTextArea(document.getElementById("dataEditor"), editorConfig);
   var templateEditor = CodeMirror.fromTextArea(document.getElementById("templateEditor"), templateEditorConfig);
   var resultEditor = CodeMirror.fromTextArea(document.getElementById("resultEditor"),
     Object.assign({}, editorConfig, { readOnly: true })
