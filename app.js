@@ -126,6 +126,24 @@
     }
     if (current.length > 0) tokens.push(current);
 
+    // Flags that take NO argument (just skip them)
+    var noArgFlags = [
+      "-L", "--location", "--compressed", "-k", "--insecure",
+      "-s", "--silent", "-S", "--show-error", "-v", "--verbose",
+      "-i", "--include", "-f", "--fail", "--fail-with-body",
+      "-N", "--no-buffer", "--raw", "--tr-encoding",
+      "--location-trusted", "-G", "--get", "-I", "--head",
+    ];
+
+    // Flags that take ONE argument (consume next token)
+    var oneArgFlags = [
+      "-o", "--output", "-w", "--write-out", "--connect-timeout",
+      "-m", "--max-time", "--retry", "--retry-delay",
+      "-e", "--referer", "-A", "--user-agent",
+      "--max-redirs", "-c", "--cookie-jar",
+      "--cert", "--key", "--cacert", "--proxy",
+    ];
+
     // Parse tokens
     for (var t = 0; t < tokens.length; t++) {
       var token = tokens[t];
@@ -139,12 +157,21 @@
           var val = hdr.substring(colonIdx + 1).trim();
           headers[key] = val;
         }
-      } else if (token === "-d" || token === "--data" || token === "--data-raw" || token === "--data-binary") {
+      } else if (token === "-b" || token === "--cookie") {
+        // Cookie passed as -b flag
+        var cookieVal = tokens[++t];
+        headers["Cookie"] = cookieVal;
+      } else if (token === "-d" || token === "--data" || token === "--data-raw" || token === "--data-binary" || token === "--data-urlencode") {
         body = tokens[++t];
         if (method === "GET") method = "POST";
       } else if (token === "-u" || token === "--user") {
         var creds = tokens[++t];
         headers["Authorization"] = "Basic " + btoa(creds);
+      } else if (noArgFlags.indexOf(token) > -1) {
+        // No-argument flag, just skip
+      } else if (oneArgFlags.indexOf(token) > -1) {
+        // Has argument but we don't use it, skip both
+        t++;
       } else if (token.startsWith("http://") || token.startsWith("https://")) {
         url = token;
       } else if (!token.startsWith("-") && !url) {
@@ -192,41 +219,64 @@
       fetchUrl = "https://corsproxy.io/?" + encodeURIComponent(parsed.url);
     }
 
+    // Build fetch options — skip Cookie header in browser (not allowed in fetch)
+    var fetchHeaders = {};
+    for (var hk in parsed.headers) {
+      // Browser won't allow setting Cookie directly in fetch
+      // CORS proxy might forward it though
+      fetchHeaders[hk] = parsed.headers[hk];
+    }
+
     var fetchOptions = {
       method: parsed.method,
-      headers: parsed.headers,
+      headers: fetchHeaders,
     };
     if (parsed.body && parsed.method !== "GET" && parsed.method !== "HEAD") {
       fetchOptions.body = parsed.body;
     }
 
-    setCurlStatus("Executing...", "loading");
+    // Show what we're sending
+    setCurlStatus("Executing " + parsed.method + " " + parsed.url + " ...", "loading");
+    console.log("[ST Playground] Fetching:", fetchUrl, fetchOptions);
+
     var btn = document.getElementById("curlExecuteBtn");
     btn.disabled = true;
     btn.textContent = "...";
 
     fetch(fetchUrl, fetchOptions)
       .then(function (response) {
-        if (!response.ok) {
-          return response.text().then(function (txt) {
-            throw new Error("HTTP " + response.status + ": " + txt.substring(0, 200));
-          });
-        }
-        return response.text();
+        var status = response.status;
+        return response.text().then(function (txt) {
+          return { status: status, ok: response.ok, text: txt };
+        });
       })
-      .then(function (text) {
+      .then(function (res) {
+        if (!res.ok) {
+          // Still try to show the response body in data editor (APIs return JSON errors)
+          try {
+            var errJson = JSON.parse(res.text);
+            dataEditor.setValue(JSON.stringify(errJson, null, 2));
+          } catch (e) {
+            dataEditor.setValue(res.text || "// Empty response");
+          }
+          setCurlStatus("HTTP " + res.status + " — Response loaded (may be an error)", "error");
+          return;
+        }
         // Try to parse as JSON and pretty-print
         try {
-          var json = JSON.parse(text);
+          var json = JSON.parse(res.text);
           dataEditor.setValue(JSON.stringify(json, null, 2));
         } catch (e) {
-          // Not JSON, put raw text
-          dataEditor.setValue(text);
+          dataEditor.setValue(res.text);
         }
-        setCurlStatus("Response loaded (" + text.length + " bytes)", "success");
+        setCurlStatus("HTTP " + res.status + " — Response loaded (" + res.text.length + " bytes)", "success");
       })
       .catch(function (err) {
-        setCurlStatus("Error: " + err.message, "error");
+        var msg = err.message;
+        if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
+          msg += " — Try toggling CORS Proxy, or the API may be unreachable";
+        }
+        setCurlStatus("Error: " + msg, "error");
       })
       .finally(function () {
         btn.disabled = false;
