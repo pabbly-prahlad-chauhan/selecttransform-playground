@@ -357,6 +357,55 @@
   templateEditor.setValue(EXAMPLES.basic.template);
 
   // =============================================
+  // JSON HELPERS
+  // =============================================
+
+  // Fix common JSON issues: single quotes → double quotes, trailing commas
+  function fixJSON(str) {
+    if (!str) return str;
+    // Try parsing as-is first
+    try { JSON.parse(str); return str; } catch (e) { /* needs fixing */ }
+
+    var result = "";
+    var inDouble = false;
+    var inSingle = false;
+    for (var i = 0; i < str.length; i++) {
+      var ch = str[i];
+      var prev = i > 0 ? str[i - 1] : "";
+
+      if (ch === '"' && !inSingle && prev !== "\\") {
+        inDouble = !inDouble;
+        result += ch;
+      } else if (ch === "'" && !inDouble && prev !== "\\") {
+        if (!inSingle) {
+          // Opening single quote → replace with double quote
+          inSingle = true;
+          result += '"';
+        } else {
+          // Closing single quote → replace with double quote
+          inSingle = false;
+          result += '"';
+        }
+      } else if (ch === '"' && inSingle) {
+        // Escape double quotes inside single-quoted strings
+        result += '\\"';
+      } else {
+        result += ch;
+      }
+    }
+
+    // Remove trailing commas before } or ]
+    result = result.replace(/,\s*([\]}])/g, "$1");
+
+    return result;
+  }
+
+  // Parse JSON with single-quote support
+  function parseJSON(str) {
+    return JSON.parse(fixJSON(str));
+  }
+
+  // =============================================
   // TRANSFORM LOGIC
   // =============================================
   function runTransform() {
@@ -372,8 +421,8 @@
         return;
       }
 
-      var data = JSON.parse(dataStr);
-      var template = JSON.parse(templateStr);
+      var data = parseJSON(dataStr);
+      var template = parseJSON(templateStr);
 
       var result = ST.transform(template, data);
       var output = JSON.stringify(result, null, 2);
@@ -389,14 +438,24 @@
   }
 
   function formatEditors() {
+    var errors = [];
     try {
-      var d = JSON.parse(dataEditor.getValue());
+      var d = parseJSON(dataEditor.getValue());
       dataEditor.setValue(JSON.stringify(d, null, 2));
-    } catch (e) { /* ignore parse errors */ }
+    } catch (e) { errors.push("Data: " + e.message); }
     try {
-      var t = JSON.parse(templateEditor.getValue());
+      var t = parseJSON(templateEditor.getValue());
       templateEditor.setValue(JSON.stringify(t, null, 2));
-    } catch (e) { /* ignore parse errors */ }
+    } catch (e) { errors.push("Template: " + e.message); }
+    // Show format errors in result status
+    var statusEl = document.getElementById("resultStatus");
+    if (errors.length > 0) {
+      statusEl.textContent = "Format error: " + errors.join(" | ");
+      statusEl.className = "panel-hint error";
+    } else {
+      statusEl.textContent = "Formatted";
+      statusEl.className = "panel-hint success";
+    }
   }
 
   // Auto-run on change (debounced)
