@@ -213,56 +213,86 @@
       return;
     }
 
-    var fetchUrl = parsed.url;
-    var useCors = document.getElementById("corsProxy").checked;
-    if (useCors) {
-      fetchUrl = "https://corsproxy.io/?" + encodeURIComponent(parsed.url);
-    }
-
-    // Build fetch options — skip Cookie header in browser (not allowed in fetch)
-    var fetchHeaders = {};
-    for (var hk in parsed.headers) {
-      // Browser won't allow setting Cookie directly in fetch
-      // CORS proxy might forward it though
-      fetchHeaders[hk] = parsed.headers[hk];
-    }
-
-    var fetchOptions = {
-      method: parsed.method,
-      headers: fetchHeaders,
-    };
-    if (parsed.body && parsed.method !== "GET" && parsed.method !== "HEAD") {
-      fetchOptions.body = parsed.body;
-    }
+    var proxyChoice = document.getElementById("corsProxy").value;
 
     // Show what we're sending
-    setCurlStatus("Executing " + parsed.method + " " + parsed.url + " ...", "loading");
-    console.log("[ST Playground] Fetching:", fetchUrl, fetchOptions);
-
+    setCurlStatus("Executing " + parsed.method + " " + parsed.url + " (via " + proxyChoice + ")...", "loading");
     var btn = document.getElementById("curlExecuteBtn");
     btn.disabled = true;
     btn.textContent = "...";
 
-    fetch(fetchUrl, fetchOptions)
-      .then(function (response) {
-        var status = response.status;
-        return response.text().then(function (txt) {
-          return { status: status, ok: response.ok, text: txt };
-        });
+    var fetchPromise;
+
+    if (proxyChoice === "local") {
+      // Local proxy — sends request via Python proxy server (no CORS issues)
+      var proxyPayload = {
+        url: parsed.url,
+        method: parsed.method,
+        headers: parsed.headers,
+        body: parsed.body,
+      };
+      fetchPromise = fetch("http://localhost:8766", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(proxyPayload),
       })
+        .then(function (r) { return r.json(); })
+        .then(function (proxyRes) {
+          return { status: proxyRes.status, ok: proxyRes.status >= 200 && proxyRes.status < 300, text: proxyRes.body };
+        });
+    } else {
+      var fetchUrl = parsed.url;
+      var useAllOrigins = false;
+
+      if (proxyChoice === "corsproxy") {
+        fetchUrl = "https://corsproxy.io/?" + encodeURIComponent(parsed.url);
+      } else if (proxyChoice === "allorigins") {
+        fetchUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(parsed.url);
+        useAllOrigins = true;
+      }
+
+      var fetchHeaders = {};
+      if (!useAllOrigins) {
+        for (var hk in parsed.headers) {
+          fetchHeaders[hk] = parsed.headers[hk];
+        }
+      }
+
+      var fetchOptions = {
+        method: useAllOrigins ? "GET" : parsed.method,
+        headers: fetchHeaders,
+      };
+      if (!useAllOrigins && parsed.body && parsed.method !== "GET" && parsed.method !== "HEAD") {
+        fetchOptions.body = parsed.body;
+      }
+
+      console.log("[ST Playground] Proxy:", proxyChoice, "URL:", fetchUrl, "Options:", fetchOptions);
+
+      fetchPromise = fetch(fetchUrl, fetchOptions)
+        .then(function (response) {
+          var status = response.status;
+          return response.text().then(function (txt) {
+            return { status: status, ok: response.ok, text: txt };
+          });
+        });
+    }
+
+    fetchPromise
       .then(function (res) {
         if (!res.ok) {
-          // Still try to show the response body in data editor (APIs return JSON errors)
           try {
             var errJson = JSON.parse(res.text);
             dataEditor.setValue(JSON.stringify(errJson, null, 2));
           } catch (e) {
             dataEditor.setValue(res.text || "// Empty response");
           }
-          setCurlStatus("HTTP " + res.status + " — Response loaded (may be an error)", "error");
+          var hint = "";
+          if (res.text && (res.text.includes("CORS blocked") || res.text.includes("CORS"))) {
+            hint = " — Try 'Local Proxy' (run proxy.py first)";
+          }
+          setCurlStatus("HTTP " + res.status + hint, "error");
           return;
         }
-        // Try to parse as JSON and pretty-print
         try {
           var json = JSON.parse(res.text);
           dataEditor.setValue(JSON.stringify(json, null, 2));
@@ -273,8 +303,10 @@
       })
       .catch(function (err) {
         var msg = err.message;
-        if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
-          msg += " — Try toggling CORS Proxy, or the API may be unreachable";
+        if (proxyChoice === "local") {
+          msg = "Local proxy not running. Start it with: python proxy.py";
+        } else if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
+          msg += " — Try 'Local Proxy' option (run proxy.py first)";
         }
         setCurlStatus("Error: " + msg, "error");
       })

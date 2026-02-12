@@ -50,10 +50,12 @@
         <div class="curl-header" id="curlToggle">
           <span class="panel-title">cURL Command</span>
           <div class="curl-controls">
-            <label class="cors-toggle" title="Enable CORS proxy for cross-origin requests">
-              <input type="checkbox" id="corsProxy" checked>
-              <span>CORS Proxy</span>
-            </label>
+            <select id="corsProxy" class="proxy-select" title="CORS Proxy">
+              <option value="local">Local Proxy</option>
+              <option value="corsproxy">CORS Proxy 1</option>
+              <option value="allorigins">CORS Proxy 2</option>
+              <option value="none">No Proxy</option>
+            </select>
             <button id="curlExecuteBtn" title="Execute cURL">Execute</button>
             <button id="curlCollapseBtn" title="Toggle cURL section">&#9650;</button>
           </div>
