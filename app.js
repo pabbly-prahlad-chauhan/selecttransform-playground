@@ -5,6 +5,17 @@
 (function () {
   "use strict";
 
+  // --- Cloud Proxy URL ---
+  // If running on Vercel, use relative path; otherwise use full Vercel URL
+  var CLOUD_PROXY_URL = (function () {
+    var host = window.location.hostname;
+    if (host.includes("vercel.app")) {
+      return "/api/proxy";
+    }
+    // Default: deployed Vercel proxy
+    return "https://selecttransform-playground.vercel.app/api/proxy";
+  })();
+
   // --- Built-in Example Data ---
   var EXAMPLES = {
     basic: {
@@ -223,15 +234,16 @@
 
     var fetchPromise;
 
-    if (proxyChoice === "local") {
-      // Local proxy — sends request via Python proxy server (no CORS issues)
+    if (proxyChoice === "cloud" || proxyChoice === "local") {
+      // Proxy — sends request via serverless function or local Python proxy
       var proxyPayload = {
         url: parsed.url,
         method: parsed.method,
         headers: parsed.headers,
         body: parsed.body,
       };
-      fetchPromise = fetch("http://localhost:8766", {
+      var proxyUrl = proxyChoice === "cloud" ? CLOUD_PROXY_URL : "http://localhost:8766";
+      fetchPromise = fetch(proxyUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(proxyPayload),
@@ -305,8 +317,10 @@
         var msg = err.message;
         if (proxyChoice === "local") {
           msg = "Local proxy not running. Start it with: python proxy.py";
+        } else if (proxyChoice === "cloud") {
+          msg += " — Cloud proxy may be unavailable. Try 'Local Proxy' instead.";
         } else if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
-          msg += " — Try 'Local Proxy' option (run proxy.py first)";
+          msg += " — Try 'Cloud Proxy' or 'Local Proxy' option";
         }
         setCurlStatus("Error: " + msg, "error");
       })
