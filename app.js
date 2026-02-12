@@ -5,16 +5,11 @@
 (function () {
   "use strict";
 
-  // --- Cloud Proxy URL ---
+  // --- API URLs ---
   // If running on Vercel, use relative path; otherwise use full Vercel URL
-  var CLOUD_PROXY_URL = (function () {
-    var host = window.location.hostname;
-    if (host.includes("vercel.app")) {
-      return "/api/proxy";
-    }
-    // Default: deployed Vercel proxy
-    return "https://st-playground.vercel.app/api/proxy";
-  })();
+  var IS_VERCEL = window.location.hostname.includes("vercel.app");
+  var CLOUD_PROXY_URL = IS_VERCEL ? "/api/proxy" : "https://st-playground.vercel.app/api/proxy";
+  var TEMPLATES_API_URL = IS_VERCEL ? "/api/templates" : "https://st-playground.vercel.app/api/templates";
 
   // --- Built-in Example Data ---
   var EXAMPLES = {
@@ -53,49 +48,63 @@
   };
 
   // =============================================
-  // SAVED TEMPLATES (localStorage)
+  // SAVED TEMPLATES (Cloud API — GitHub-backed)
   // =============================================
-  var STORAGE_KEY = "st_playground_saved_templates";
-
-  function getSavedTemplates() {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-    } catch (e) {
-      return {};
-    }
-  }
-
-  function saveTemplate(name, data, template) {
-    var saved = getSavedTemplates();
-    saved[name] = { data: data, template: template };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
-  }
-
-  function deleteTemplate(name) {
-    var saved = getSavedTemplates();
-    delete saved[name];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
-  }
+  var _cachedTemplates = []; // local cache: [{name, data, template, updatedAt}]
 
   function refreshSavedDropdown() {
     var select = document.getElementById("savedTemplates");
-    var saved = getSavedTemplates();
-    var names = Object.keys(saved);
-
-    // Clear old saved options
-    while (select.options.length > 1) {
-      select.remove(1);
-    }
-
-    names.forEach(function (name) {
+    while (select.options.length > 1) select.remove(1);
+    _cachedTemplates.forEach(function (t) {
       var opt = document.createElement("option");
-      opt.value = name;
-      opt.textContent = name;
+      opt.value = t.name;
+      opt.textContent = t.name;
       select.appendChild(opt);
     });
+    document.getElementById("deleteTemplateBtn").style.display =
+      _cachedTemplates.length > 0 ? "inline-block" : "none";
+  }
 
-    // Show/hide delete button
-    document.getElementById("deleteTemplateBtn").style.display = names.length > 0 ? "inline-block" : "none";
+  function loadTemplatesFromAPI() {
+    return fetch(TEMPLATES_API_URL)
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        _cachedTemplates = (data && data.templates) ? data.templates : [];
+        refreshSavedDropdown();
+      })
+      .catch(function (err) {
+        console.error("Failed to load templates:", err);
+      });
+  }
+
+  function saveTemplateToAPI(name, data, template) {
+    return fetch(TEMPLATES_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name, data: data, template: template }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res.templates) {
+          _cachedTemplates = res.templates.templates || [];
+        }
+        refreshSavedDropdown();
+      });
+  }
+
+  function deleteTemplateFromAPI(name) {
+    return fetch(TEMPLATES_API_URL, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res.templates) {
+          _cachedTemplates = res.templates.templates || [];
+        }
+        refreshSavedDropdown();
+      });
   }
 
   // =============================================
@@ -496,10 +505,10 @@
   document.getElementById("savedTemplates").addEventListener("change", function () {
     var key = this.value;
     if (key) {
-      var saved = getSavedTemplates();
-      if (saved[key]) {
-        dataEditor.setValue(saved[key].data);
-        templateEditor.setValue(saved[key].template);
+      var found = _cachedTemplates.find(function (t) { return t.name === key; });
+      if (found) {
+        dataEditor.setValue(found.data);
+        templateEditor.setValue(found.template);
         runTransform();
       }
     }
@@ -513,12 +522,21 @@
 
     var data = dataEditor.getValue();
     var template = templateEditor.getValue();
+    var btn = document.getElementById("saveTemplateBtn");
+    btn.disabled = true;
+    btn.textContent = "Saving...";
 
-    saveTemplate(name, data, template);
-    refreshSavedDropdown();
-
-    // Select the newly saved template
-    document.getElementById("savedTemplates").value = name;
+    saveTemplateToAPI(name, data, template)
+      .then(function () {
+        document.getElementById("savedTemplates").value = name;
+      })
+      .catch(function (err) {
+        alert("Failed to save template: " + err.message);
+      })
+      .finally(function () {
+        btn.disabled = false;
+        btn.textContent = "Save";
+      });
   });
 
   // --- Delete Template ---
@@ -530,9 +548,21 @@
       return;
     }
     if (confirm('Delete template "' + name + '"?')) {
-      deleteTemplate(name);
-      refreshSavedDropdown();
-      select.value = "";
+      var btn = document.getElementById("deleteTemplateBtn");
+      btn.disabled = true;
+      btn.textContent = "Deleting...";
+
+      deleteTemplateFromAPI(name)
+        .then(function () {
+          select.value = "";
+        })
+        .catch(function (err) {
+          alert("Failed to delete template: " + err.message);
+        })
+        .finally(function () {
+          btn.disabled = false;
+          btn.textContent = "Delete";
+        });
     }
   });
 
@@ -610,6 +640,6 @@
   });
 
   // --- Init ---
-  refreshSavedDropdown();
+  loadTemplatesFromAPI();
   setTimeout(runTransform, 100);
 })();
