@@ -372,3 +372,118 @@ html, body {
 .curl-status.loading {
   color: var(--yellow);
 }
+
+/* =============================================
+   AI Generate Section
+   ============================================= */
+.ai-section {
+  border-bottom: 2px solid var(--accent);
+}
+
+.ai-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  min-height: 30px;
+}
+
+.ai-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-controls button {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ai-controls button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+#aiGenerateBtn {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+#aiGenerateBtn:hover {
+  background: #d4a0ff;
+  border-color: #d4a0ff;
+  color: var(--bg);
+}
+
+#aiGenerateBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+#aiCollapseBtn {
+  font-size: 10px;
+  padding: 3px 6px;
+}
+
+.ai-body {
+  transition: max-height 0.2s ease, padding 0.2s ease;
+  overflow: hidden;
+}
+
+.ai-body.collapsed {
+  max-height: 0 !important;
+  padding: 0 !important;
+}
+
+#aiPromptInput {
+  width: 100%;
+  min-height: 60px;
+  max-height: 120px;
+  resize: vertical;
+  padding: 8px 12px;
+  background: var(--bg);
+  color: var(--text);
+  border: none;
+  border-bottom: 1px solid var(--border);
+  font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 12px;
+  outline: none;
+}
+
+#aiPromptInput::placeholder {
+  color: var(--text-dim);
+  opacity: 0.6;
+}
+
+#aiPromptInput:focus {
+  background: #1a1a2a;
+}
+
+.ai-status {
+  padding: 3px 12px;
+  font-size: 11px;
+  color: var(--text-dim);
+  min-height: 4px;
+}
+
+.ai-status.success {
+  color: var(--green);
+}
+
+.ai-status.error {
+  color: var(--red);
+}
+
+.ai-status.loading {
+  color: var(--accent);
+}

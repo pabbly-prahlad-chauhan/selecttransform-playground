@@ -10,6 +10,7 @@
   var IS_VERCEL = window.location.hostname.includes("vercel.app");
   var CLOUD_PROXY_URL = IS_VERCEL ? "/api/proxy" : "https://st-playground.vercel.app/api/proxy";
   var TEMPLATES_API_URL = IS_VERCEL ? "/api/templates" : "https://st-playground.vercel.app/api/templates";
+  var GENERATE_API_URL = IS_VERCEL ? "/api/generate" : "https://st-playground.vercel.app/api/generate";
 
   // --- Built-in Example Data ---
   var EXAMPLES = {
@@ -582,6 +583,72 @@
     }
     // Refresh editor after layout change
     setTimeout(function () { dataEditor.refresh(); }, 50);
+  });
+
+  // --- AI Generate ---
+  function setAiStatus(text, type) {
+    var el = document.getElementById("aiStatus");
+    el.textContent = text;
+    el.className = "ai-status" + (type ? " " + type : "");
+  }
+
+  document.getElementById("aiGenerateBtn").addEventListener("click", function () {
+    var promptText = document.getElementById("aiPromptInput").value.trim();
+    if (!promptText) {
+      setAiStatus("Enter a prompt first", "error");
+      return;
+    }
+
+    var dataStr = dataEditor.getValue().trim();
+    var btn = document.getElementById("aiGenerateBtn");
+    btn.disabled = true;
+    btn.textContent = "Generating...";
+    setAiStatus("Generating template...", "loading");
+
+    fetch(GENERATE_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data: dataStr, prompt: promptText }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res.error) {
+          setAiStatus("Error: " + res.error, "error");
+          return;
+        }
+        if (res.template) {
+          // Pretty-print the template
+          try {
+            var parsed = JSON.parse(res.template);
+            templateEditor.setValue(JSON.stringify(parsed, null, 2));
+          } catch (e) {
+            templateEditor.setValue(res.template);
+          }
+          setAiStatus("Template generated — click Run or it auto-runs", "success");
+          runTransform();
+        }
+      })
+      .catch(function (err) {
+        setAiStatus("Failed: " + err.message, "error");
+      })
+      .finally(function () {
+        btn.disabled = false;
+        btn.textContent = "Generate";
+      });
+  });
+
+  // --- AI Collapse/Expand ---
+  document.getElementById("aiCollapseBtn").addEventListener("click", function () {
+    var body = document.getElementById("aiBody");
+    var btn = this;
+    if (body.classList.contains("collapsed")) {
+      body.classList.remove("collapsed");
+      btn.innerHTML = "&#9650;";
+    } else {
+      body.classList.add("collapsed");
+      btn.innerHTML = "&#9660;";
+    }
+    setTimeout(function () { templateEditor.refresh(); }, 50);
   });
 
   // --- Keyboard shortcuts ---

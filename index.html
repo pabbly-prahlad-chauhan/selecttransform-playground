@@ -77,8 +77,23 @@
     <!-- Divider -->
     <div class="divider" data-index="0"></div>
 
-    <!-- Panel 2: Template -->
+    <!-- Panel 2: AI Prompt + Template -->
     <div class="panel">
+      <!-- AI Prompt Section -->
+      <div class="ai-section">
+        <div class="ai-header">
+          <span class="panel-title">AI Generate</span>
+          <div class="ai-controls">
+            <button id="aiGenerateBtn" title="Generate template from prompt">Generate</button>
+            <button id="aiCollapseBtn" title="Toggle AI section">&#9650;</button>
+          </div>
+        </div>
+        <div class="ai-body" id="aiBody">
+          <textarea id="aiPromptInput" placeholder="Describe the template you want...&#10;&#10;Examples:&#10;Extract all names into a flat list&#10;Add a total field (price * quantity) to each item&#10;Group users by role and count them&#10;Show only active items with uppercase names"></textarea>
+          <div id="aiStatus" class="ai-status"></div>
+        </div>
+      </div>
+      <!-- Template Editor -->
       <div class="panel-header">
         <span class="panel-title">Template (JSON)</span>
         <span class="panel-hint">Define your ST template</span>
